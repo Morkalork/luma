@@ -72,6 +72,4 @@ export type MatchInfo = {
   matchVsTeams: string;
 };
 
-export type SeasonMatches = {
-  [matchId: string]: MatchInfo;
-};
+
