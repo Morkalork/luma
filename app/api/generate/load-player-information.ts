@@ -1,6 +1,6 @@
 import { createWebPage } from "../utils/create-web-page";
 import { PlayerMatchInfo } from "@/app/types/player-match-info";
-import { getPlayerCache, savePlayerCache } from "./cache";
+import { addPlayersToCache, savePlayerCache } from "./cache";
 
 const getMatchInfoUrl = (matchId: number) =>
   `https://bits.swebowl.se/match-detail?matchid=${matchId}`;
@@ -17,11 +17,9 @@ export async function loadPlayerInformation(
   const page = await createWebPage();
   const url = getMatchInfoUrl(matchId);
   page.setRequestInterception(false);
-  let matchesLoaded = false;
 
   page.on("response", async (response) => {
     if (
-      !matchesLoaded &&
       response
         .url()
         .startsWith("https://api.swebowl.se/api/v1/matchResult/GetMatchResults")
@@ -35,13 +33,17 @@ export async function loadPlayerInformation(
           : data.playerListAway;
 
         if (players.length > 0) {
-          console.log("Match information loaded!");
-          matchesLoaded = true;
-          const playerCache = getPlayerCache();
-          playerCache[matchId] = players;
-          savePlayerCache(playerCache);
+          console.log(
+            `Match ${matchId} has players ${players
+              .map((p) => p.player)
+              .join(", ")}`
+          );
+          addPlayersToCache(matchId, players);
         }
       }
+
+      savePlayerCache();
+      response.ok();
     }
   });
 

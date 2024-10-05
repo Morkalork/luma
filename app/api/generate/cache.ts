@@ -49,20 +49,29 @@ export async function initiateCache() {
   hasLoaded = true;
 }
 
-export function getSeasonCache() {
-  return seasonCache;
+export function addMatchToCache(matchId: number, match: MatchInfo) {
+  seasonCache[matchId] = match;
 }
 
-export function getPlayerCache() {
-  return playersCache;
+export function addPlayersToCache(
+  matchId: number,
+  playerMatch: PlayerMatchInfo[]
+) {
+  playersCache[matchId] = playerMatch;
 }
 
-export function saveSeasonCache(newCache: SeasonCache) {
-  writeJsonFile(seasonCacheFilePath, newCache);
-  seasonCache = newCache;
+export function getMatchIdsFromCache(): number[] {
+  return Object.keys(seasonCache).map((id) => parseInt(id));
 }
 
-export function savePlayerCache(newCache: PlayerCache) {
-  writeJsonFile(playerCacheFilePath, newCache);
-  playersCache = newCache;
+export function getMatchFromCache(matchId: number): MatchInfo {
+  return seasonCache[matchId];
+}
+
+export function saveSeasonCache() {
+  writeJsonFile(seasonCacheFilePath, seasonCache);
+}
+
+export function savePlayerCache() {
+  writeJsonFile(playerCacheFilePath, playersCache);
 }

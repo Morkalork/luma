@@ -9,7 +9,7 @@ type Team = {
 };
 
 const season = "2024";
-const clubId = "33651";
+const clubId = 33651;
 const teams: Team[] = [
   { id: 90611, name: "A", divisionId: "12" },
   { id: 162063, name: "B", divisionId: "874" },
@@ -26,6 +26,7 @@ export async function POST() {
       season,
       clubId,
       teamId: team.id,
+      teamName: team.name,
       divisionId: team.divisionId,
     };
     console.debug(`Loading data for team ${team.name}`);

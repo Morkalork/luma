@@ -1,12 +1,19 @@
 import { MatchInfo } from "@/app/types/match-info";
-import { getSeasonCache, saveSeasonCache } from "./cache";
+import {
+  addMatchToCache,
+  getMatchFromCache,
+  getMatchIdsFromCache,
+  saveSeasonCache,
+} from "./cache";
 import { createWebPage } from "../utils/create-web-page";
 import { loadPlayerInformation } from "./load-player-information";
+import { Temporal } from "@js-temporal/polyfill";
 
 export type TeamInformation = {
   season: string;
-  clubId: string;
+  clubId: number;
   teamId: number;
+  teamName: string;
   divisionId: string;
 };
 
@@ -18,7 +25,6 @@ export async function loadFixtures(fixturesArgs: TeamInformation) {
   const url = getFixturesUrl(fixturesArgs);
   page.setRequestInterception(false);
   let fixturesLoaded = false;
-  console.log(`Loading fixtures from ${url}`);
 
   page.on("response", async (response) => {
     if (
@@ -32,28 +38,39 @@ export async function loadFixtures(fixturesArgs: TeamInformation) {
         return;
       }
 
-      console.log("Loading fixtures...");
-      const seasonCache = getSeasonCache();
+      console.log(`Loading fixtures for ${fixturesArgs.teamName}`);
       const data: MatchInfo[] = await response.json();
-      data.forEach((match) => {
-        seasonCache[match.matchId] = match;
-      });
+      const clubId = fixturesArgs.clubId;
+      const today = Temporal.Now.plainDateISO().toString();
+      const isOurMatch = (match: MatchInfo) =>
+        match.homeTeamClubId === clubId || match.awayTeamClubId === clubId;
+      const matchThatHasBeenPlayed = (match: MatchInfo) =>
+        match.matchDate <= today;
+      data
+        .filter(isOurMatch)
+        .filter(matchThatHasBeenPlayed)
+        .forEach((match) => {
+          console.log(
+            `Adding match ${match.matchId} with date ${match.matchDate} to cache`
+          );
+          addMatchToCache(match.matchId, match);
+        });
 
-      saveSeasonCache(seasonCache);
-
-      const matchIds = Object.keys(seasonCache);
+      const matchIds = getMatchIdsFromCache();
       if (matchIds.length > 0) {
         console.log("Fixtures loaded!");
         fixturesLoaded = true;
 
-        for (const matchIdStr of matchIds) {
-          const matchId = parseInt(matchIdStr);
-          const isHome =
-            seasonCache[matchId].matchHomeTeamId === fixturesArgs.teamId;
+        for (const matchId of matchIds) {
+          const match = getMatchFromCache(matchId);
+          const isHome = match.matchHomeTeamId === fixturesArgs.teamId;
           console.log(`Loading player information for match ${matchId}`);
           await loadPlayerInformation(matchId, isHome);
         }
       }
+
+      console.log(`Saving season cache for ${fixturesArgs.teamName}`);
+      saveSeasonCache();
     }
   });
 
